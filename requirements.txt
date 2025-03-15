@@ -1,4 +1,3 @@
-txt
 requests
 termcolor
 smtplib
