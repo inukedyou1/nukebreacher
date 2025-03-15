@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: "requests" # See documentation for possible values
+    directory: "/" # Location of package manifests
+    schedule:
+      interval: "daily"
+
+      version: 2
+updates:
+  - package-ecosystem: "colorama" # See documentation for possible values
+    directory: "/" # Location of package manifests
+    schedule:
+      interval: "daily"
+
