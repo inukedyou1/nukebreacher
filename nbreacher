@@ -225,7 +225,7 @@ def brute_force(username, password_files, token=None, cookie=None, email_updates
 
 if __name__ == "__main__":
     print(ascii_art)
-    username = input("Enter the username: ")
+    username = input("Enter a username, email address, or phone number: ")
     token = input("Enter Bearer Token (if applicable, press Enter to skip): ")
     cookie = input("Enter Cookie (if applicable, press Enter to skip): ")
 
